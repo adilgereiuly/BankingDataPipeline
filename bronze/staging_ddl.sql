@@ -1,6 +1,5 @@
 -- =============================================================================
 -- Staging Layer DDL
--- Project: Banking Data Pipeline
 -- Purpose: Ephemeral landing zone for raw CSV loads via COPY. Truncated and
 --          reloaded on every ingestion run before merging into Bronze.
 -- =============================================================================
