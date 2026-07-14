@@ -1,6 +1,5 @@
 -- =============================================================================
 -- Bronze Layer DDL
--- Project: Banking Data Pipeline
 -- Purpose: Raw landing tables — one per source entity, mirrors incoming CSV
 --          structure exactly (no type casting, no constraints beyond PK)
 -- =============================================================================
