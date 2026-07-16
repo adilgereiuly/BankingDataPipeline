@@ -17,7 +17,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.account_products;
-EXECUTE format('COPY staging.account_products FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.account_products (product_id, product_name, default_currency) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.account_products
 (product_id, product_name, default_currency, dwh_load_date)
 SELECT
@@ -39,7 +39,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.accounts;
-EXECUTE format('COPY staging.accounts FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.accounts (account_id, customer_id, product_id, currency_code, opened_date, status) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.accounts
 (account_id, customer_id, product_id, currency_code, opened_date, status, dwh_load_date)
 SELECT
@@ -67,7 +67,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.card_bin_ranges;
-EXECUTE format('COPY staging.card_bin_ranges FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.card_bin_ranges (bin, product_name, network) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.card_bin_ranges
 (bin, product_name, network, dwh_load_date)
 SELECT
@@ -89,7 +89,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.cards;
-EXECUTE format('COPY staging.cards FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.cards (card_id, account_id, bin, issued_date, status) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.cards
 (card_id, account_id, bin, issued_date, status, dwh_load_date)
 SELECT
@@ -115,7 +115,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.currencies;
-EXECUTE format('COPY staging.currencies FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.currencies (currency_code, currency_name, symbol) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.currencies
 (currency_code, currency_name, symbol, dwh_load_date)
 SELECT
@@ -137,7 +137,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.customer_addresses;
-EXECUTE format('COPY staging.customer_addresses FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.customer_addresses (address_id, customer_id, address_line, city, country, valid_from, valid_to) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.customer_addresses
 (address_id, customer_id, address_line, city, country, valid_from, valid_to, dwh_load_date)
 SELECT
@@ -167,7 +167,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.customer_contacts;
-EXECUTE format('COPY staging.customer_contacts FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.customer_contacts (contact_id, customer_id, phone, email, valid_from, valid_to) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.customer_contacts
 (contact_id, customer_id, phone, email, valid_from, valid_to, dwh_load_date)
 SELECT
@@ -195,7 +195,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.customers;
-EXECUTE format('COPY staging.customers FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.customers (customer_id, first_name, last_name, dob, status, created_at) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.customers
 (customer_id, first_name, last_name, dob, status, created_at, dwh_load_date)
 SELECT
@@ -223,7 +223,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.merchant_categories;
-EXECUTE format('COPY staging.merchant_categories FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.merchant_categories (category_id, category_name) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.merchant_categories
 (category_id, category_name, dwh_load_date)
 SELECT
@@ -243,7 +243,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.merchants;
-EXECUTE format('COPY staging.merchants FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.merchants (merchant_id, name, category_id, city) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.merchants
 (merchant_id, name, category_id, city, dwh_load_date)
 SELECT
@@ -267,7 +267,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.transaction_types;
-EXECUTE format('COPY staging.transaction_types FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.transaction_types (transaction_type, description) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.transaction_types
 (transaction_type, description, dwh_load_date)
 SELECT
@@ -281,12 +281,13 @@ dwh_load_date = CURRENT_TIMESTAMP;
 END;
 $$;
 
+
 CREATE OR REPLACE PROCEDURE bronze.load_customer_changes (file_path TEXT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.customer_changes;
-EXECUTE format('COPY staging.customer_changes FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.customer_changes (change_id, customer_id, change_type, status, address_line, city, country, change_timestamp) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.customer_changes
 (change_id, customer_id, change_type, status, address_line, city, country, change_timestamp, dwh_load_date)
 SELECT
@@ -304,12 +305,13 @@ ON CONFLICT(change_id) DO NOTHING;
 END;
 $$;
 
+
 CREATE OR REPLACE PROCEDURE bronze.load_transactions (file_path TEXT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
 TRUNCATE staging.transactions;
-EXECUTE format('COPY staging.transactions FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
+EXECUTE format('COPY staging.transactions (transaction_id, transaction_timestamp, account_id, card_id, merchant_id, transaction_type, currency_code, amount, status) FROM %L WITH (FORMAT CSV, HEADER TRUE)', file_path);
 INSERT INTO bronze.transactions
 (transaction_id, transaction_timestamp, account_id, card_id, merchant_id, transaction_type, currency_code, amount, status, dwh_load_date)
 SELECT
@@ -327,7 +329,3 @@ FROM staging.transactions
 ON CONFLICT(transaction_id) DO NOTHING;
 END;
 $$;
-
-
-
-
