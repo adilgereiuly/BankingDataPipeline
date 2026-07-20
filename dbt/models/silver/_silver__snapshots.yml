@@ -1,0 +1,20 @@
+version: 2
+
+snapshots:
+  - name: customers_snapshot
+    columns:
+      - name: dbt_scd_id
+        tests:
+          - not_null
+          - unique
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['active', 'blocked', 'closed']
+
+  - name: addresses_snapshot
+    columns:
+      - name: dbt_scd_id
+        tests:
+          - not_null
+          - unique
