@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: currencies
+      - name: transaction_types
+      - name: merchant_categories
+      - name: account_products
+      - name: card_bin_ranges
+      - name: merchants
+      - name: cards
+      - name: accounts
+      - name: transactions
+      - name: customer_contacts
+      - name: customer_changes
+      - name: customers
+      - name: customer_addresses
