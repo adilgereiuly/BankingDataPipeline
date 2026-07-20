@@ -1,0 +1,139 @@
+version: 2
+
+models:
+  - name: account_products
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: accounts
+    columns:
+      - name: account_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - relationships:
+              to: ref('customers_snapshot')
+              field: customer_id
+      - name: product_id
+        tests:
+          - relationships:
+              to: ref('account_products')
+              field: product_id
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['active', 'dormant', 'closed']
+
+  - name: card_bin_ranges
+    columns:
+      - name: bin
+        tests:
+          - not_null
+          - unique
+
+  - name: cards
+    columns:
+      - name: card_id
+        tests:
+          - not_null
+          - unique
+      - name: account_id
+        tests:
+          - relationships:
+              to: ref('accounts')
+              field: account_id
+      - name: bin
+        tests:
+          - relationships:
+              to: ref('card_bin_ranges')
+              field: bin
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['active', 'blocked', 'expired']
+
+  - name: currencies
+    columns:
+      - name: currency_code
+        tests:
+          - not_null
+          - unique
+
+  - name: customer_contacts
+    columns:
+      - name: contact_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - relationships:
+              to: ref('customers_snapshot')
+              field: customer_id
+
+  - name: customer_changes
+    columns:
+      - name: change_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - relationships:
+              to: ref('customers_snapshot')
+              field: customer_id
+      - name: change_type
+        tests:
+          - accepted_values:
+              values: ['address', 'status']
+
+  - name: merchant_categories
+    columns:
+      - name: category_id
+        tests:
+          - not_null
+          - unique
+
+  - name: merchants
+    columns:
+      - name: merchant_id
+        tests:
+          - not_null
+          - unique
+      - name: category_id
+        tests:
+          - relationships:
+              to: ref('merchant_categories')
+              field: category_id
+
+  - name: transaction_types
+    columns:
+      - name: transaction_type
+        tests:
+          - not_null
+          - unique
+
+  - name: transactions
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+      - name: account_id
+        tests:
+          - relationships:
+              to: ref('accounts')
+              field: account_id
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['approved', 'declined']
+      - name: transaction_type
+        tests:
+          - accepted_values:
+              values: ['purchase', 'transfer_out', 'transfer_in', 'withdrawal', 'deposit', 'fee']
