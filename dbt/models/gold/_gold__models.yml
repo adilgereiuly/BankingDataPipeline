@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: dim_merchants
+    columns:
+      - name: merchant_sk
+        tests:
+          - not_null
+          - unique
+      - name: merchant_id
+        tests:
+          - not_null
+
+  - name: dim_accounts
+    columns:
+      - name: account_sk
+        tests:
+          - not_null
+          - unique
+      - name: account_id
+        tests:
+          - not_null
+
+  - name: dim_cards
+    columns:
+      - name: card_sk
+        tests:
+          - not_null
+          - unique
+      - name: card_id
+        tests:
+          - not_null
+
+  - name: dim_customers
+    columns:
+      - name: customer_sk
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+
+  - name: fact_transactions
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+      - name: account_sk
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_accounts')
+                field: account_sk
+      - name: card_sk
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_cards')
+                field: card_sk
+      - name: merchant_sk
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_merchants')
+                field: merchant_sk
+      - name: customer_sk
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_sk
