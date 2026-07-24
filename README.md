@@ -56,7 +56,10 @@ Postgres for its demand & popularity within the Data Engineering and Analytics d
 
 dbt for shaping Silver/Gold transformations into version-controlled, testable SQL
 
-so that every model is compiled, documented, and covered by tests instead of being a one-off script nobody can safely modify.
+so that every model is compiled, documented, and covered by tests
+
+
+instead of being a one-off script nobody can safely modify.
 
 Snapshots give SCD2 historization, without hand-rolled window-function logic.
 
@@ -116,7 +119,10 @@ But SCD2 historization needs something that changes over time to snapshot agains
 The fix is a two step resolve, then track pattern: 
 
 
-an intermediate model merges the base customer record with the latest event to produce one clean "current state" row per customer,
+an intermediate model merges the base customer record with the latest event
+
+
+to produce one clean "current state" row per customer,
 
 and a dbt snapshot compares that output run over run, 
 
@@ -161,7 +167,13 @@ which isn't meaningfully demonstrable solo.
 
 **Business rules as tests, not constraints.**
 
-Validation like accepted status values and date-range sanity lives in dbt tests instead of DB `CHECK` constraints because a hard constraint halts the whole pipeline whereas a test would have simply flagged it without blocking the run.
+Validation like accepted status values and date-range sanity lives in dbt tests
+
+
+instead of DB `CHECK` constraints because a hard constraint halts the whole pipeline 
+
+
+whereas a test would have simply flagged it without blocking the run.
 
 ---
 
