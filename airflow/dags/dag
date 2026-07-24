@@ -1,0 +1,78 @@
+from airflow import DAG
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.sensors.filesystem import FileSensor
+from datetime import datetime
+
+DBT_PROJECT_DIR = "/opt/airflow/dbt/BankingDataPipeline"  # adjust to your container path
+STAGING_INCOMING = "/staging/incoming/{{ ds }}"           # container path, per your volume mount
+
+with DAG(
+    dag_id="banking_data_pipeline",
+    start_date=datetime(2026, 7, 13),
+    schedule="@daily",
+    catchup=False,
+    tags=["banking", "medallion"],
+) as dag:
+
+    wait_for_transactions = FileSensor(
+        task_id="wait_for_transactions",
+        filepath=f"{STAGING_INCOMING}/transactions_{{{{ ds }}}}.csv",
+        poke_interval=30,
+        timeout=60 * 30,
+    )
+    wait_for_customer_changes = FileSensor(
+        task_id="wait_for_customer_changes",
+        filepath=f"{STAGING_INCOMING}/customer_changes_{{{{ ds }}}}.csv",
+        poke_interval=30,
+        timeout=60 * 30,
+    )
+
+
+    bronze_calls = {
+        "load_customers":       f"CALL bronze.load_customers('{STAGING_INCOMING}/new_customers_{{{{ ds }}}}.csv');",
+        "load_accounts":        f"CALL bronze.load_accounts('{STAGING_INCOMING}/new_accounts_{{{{ ds }}}}.csv');",
+        "load_cards":           f"CALL bronze.load_cards('{STAGING_INCOMING}/new_cards_{{{{ ds }}}}.csv');",
+        "load_transactions":    f"CALL bronze.load_transactions('{STAGING_INCOMING}/transactions_{{{{ ds }}}}.csv');",
+        "load_customer_changes":f"CALL bronze.load_customer_changes('{STAGING_INCOMING}/customer_changes_{{{{ ds }}}}.csv');",
+    }
+
+    bronze_tasks = {}
+    for task_id, sql in bronze_calls.items():
+        bronze_tasks[task_id] = SQLExecuteQueryOperator(
+            task_id=f"bronze_{task_id}",
+            conn_id="dwh_sql",
+            sql=sql,
+        )
+
+
+    dbt_run_silver = BashOperator(
+        task_id="dbt_run_silver",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt run --select silver",
+    )
+    dbt_snapshot = BashOperator(
+        task_id="dbt_snapshot",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt snapshot",
+    )
+    dbt_test_silver = BashOperator(
+        task_id="dbt_test_silver",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --select silver",
+    )
+
+
+    dbt_run_gold = BashOperator(
+        task_id="dbt_run_gold",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt run --select gold",
+    )
+    dbt_test_gold = BashOperator(
+        task_id="dbt_test_gold",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --select gold",
+    )
+
+
+    [wait_for_transactions, wait_for_customer_changes] >> bronze_tasks["load_customers"]
+    bronze_tasks["load_customers"] >> bronze_tasks["load_accounts"] >> bronze_tasks["load_cards"]
+    bronze_tasks["load_cards"] >> bronze_tasks["load_transactions"]
+    bronze_tasks["load_transactions"] >> bronze_tasks["load_customer_changes"]
+    bronze_tasks["load_customer_changes"] >> dbt_run_silver >> dbt_snapshot >> dbt_test_silver
+    dbt_test_silver >> dbt_run_gold >> dbt_test_gold
