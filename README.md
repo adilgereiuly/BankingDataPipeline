@@ -112,7 +112,10 @@ Bronze's only job is to be a trustworthy, unmodified fallback for auditing.
 The hardest problem in this layer: 
 
 
-bronze.customers only holds each customer's latest state & it doesn't know a status changed, only what it changed to.
+bronze.customers only holds each customer's latest state
+
+
+& it doesn't know a status changed, only what it changed to.
 
 But SCD2 historization needs something that changes over time to snapshot against.
 
