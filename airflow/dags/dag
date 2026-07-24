@@ -4,8 +4,8 @@ from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sensors.filesystem import FileSensor
 from datetime import datetime
 
-DBT_PROJECT_DIR = "/opt/airflow/dbt/BankingDataPipeline"  # adjust to your container path
-STAGING_INCOMING = "/staging/incoming/{{ ds }}"           # container path, per your volume mount
+DBT_PROJECT_DIR = "/opt/airflow/dbt/BankingDataPipeline" 
+STAGING_INCOMING = "/staging/incoming/{{ ds }}"           
 
 with DAG(
     dag_id="banking_data_pipeline",
@@ -14,6 +14,7 @@ with DAG(
     catchup=False,
     tags=["banking", "medallion"],
 ) as dag:
+
 
     wait_for_transactions = FileSensor(
         task_id="wait_for_transactions",
@@ -59,7 +60,7 @@ with DAG(
         bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --select silver",
     )
 
-
+    # ---------- 4. Gold: dbt run -> test ----------
     dbt_run_gold = BashOperator(
         task_id="dbt_run_gold",
         bash_command=f"cd {DBT_PROJECT_DIR} && dbt run --select gold",
@@ -69,7 +70,7 @@ with DAG(
         bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --select gold",
     )
 
-
+ 
     [wait_for_transactions, wait_for_customer_changes] >> bronze_tasks["load_customers"]
     bronze_tasks["load_customers"] >> bronze_tasks["load_accounts"] >> bronze_tasks["load_cards"]
     bronze_tasks["load_cards"] >> bronze_tasks["load_transactions"]
