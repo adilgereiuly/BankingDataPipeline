@@ -54,11 +54,17 @@ Postgres, dbt, and Airflow:
 
 Postgres for its demand & popularity within the Data Engineering and Analytics domains.
 
-dbt for shaping Silver/Gold transformations into version-controlled, testable SQL, so that every model is compiled, documented, and covered by tests instead of being a one-off script nobody can safely modify.
+dbt for shaping Silver/Gold transformations into version-controlled, testable SQL
 
-Snapshots give SCD2 historization for free, without hand-rolled window-function logic.
+so that every model is compiled, documented, and covered by tests instead of being a one-off script nobody can safely modify.
 
-And because dbt builds a DAG of the pipeline, it kind of knows exactly what needs to rerun and what comes after what, which is also what makes it a natural fit for orchestration.
+Snapshots give SCD2 historization, without hand-rolled window-function logic.
+
+And because dbt builds a DAG of the pipeline
+
+it kind of knows exactly what needs to rerun and what comes after what
+
+which is also what makes it a natural fit for orchestration.
 
 and Airflow because logically, the whole process needs to be orchestrated and Airflow fully owns that domain.
 
@@ -100,31 +106,58 @@ Bronze's only job is to be a trustworthy, unmodified fallback for auditing.
 
 **Silver: SCD2 via dbt snapshots, not hand-rolled SQL.**
 
-The hardest problem in this layer: bronze.customers only holds each customer's latest state & it doesn't know a status changed, only what it changed to.
+The hardest problem in this layer: 
+
+
+bronze.customers only holds each customer's latest state & it doesn't know a status changed, only what it changed to.
 
 But SCD2 historization needs something that changes over time to snapshot against.
 
-The fix is a two step resolve, then track pattern: an intermediate model merges the base customer record with the latest event to produce one clean "current state" row per customer,
+The fix is a two step resolve, then track pattern: 
 
-and a dbt snapshot compares that output run over run, automatically closing out old versions and opening new ones whenever something changes, with no hand-written versioning logic.
+
+an intermediate model merges the base customer record with the latest event to produce one clean "current state" row per customer,
+
+and a dbt snapshot compares that output run over run, 
+
+
+automatically closing out old versions and opening new ones whenever something changes, with no hand-written versioning logic.
 
 **Gold: merging two independently-timed SCD2 timelines.**
 
-dim_customers needs to combine a customer's status history with their address history, but those two timelines almost never change on the same day,
+dim_customers needs to combine a customer's status history with their address history, 
+
+
+but those two timelines almost never change on the same day,
 
 a naive join would misalign them, pairing a status from one point in time with an address from another.
 
-The fix: treat every date either timeline changed as a checkpoint, then for each checkpoint, work out what was true in both histories at that exact moment.
+The fix: treat every date either timeline changed as a checkpoint, 
+
+
+then for each checkpoint, work out what was true in both histories at that exact moment.
 
 The result is one merged timeline that's always internally consistent.
 
-fact_transactions then looks up, for each transaction, the version of the customer that was actually true at that transaction's timestamp.
+fact_transactions then looks up, for each transaction, 
+
+
+the version of the customer that was actually true at that transaction's timestamp.
 
 **PII handling.**
 
-Masking is applied inside Silver's models, so Bronze stays fully raw for lineage while everything downstream only sees masked values: partial name masking, age brackets, partially masked email/phone, and street-level address redaction.
+Masking is applied inside Silver's models, 
 
-I didn't do tokenization because it needs a separate access controlled vault, which isn't meaningfully demonstrable solo.
+
+so Bronze stays fully raw for lineage while everything downstream only sees masked values: 
+
+
+partial name masking, age brackets, partially masked email/phone, and street-level address redaction.
+
+I didn't do tokenization because it needs a separate access controlled vault, 
+
+
+which isn't meaningfully demonstrable solo.
 
 **Business rules as tests, not constraints.**
 
@@ -134,4 +167,40 @@ Validation like accepted status values and date-range sanity lives in dbt tests 
 
 ## Data quality
 
-**62 dbt tests** across Silver and
+**62 dbt tests** across Silver and Gold:
+
+`not_null` / `unique` on every primary key and surrogate key
+
+`accepted_values` on every status/type enum
+
+`relationships` for referential integrity across every foreign key
+
+Singular tests:
+
+valid date ranges on both snapshot tables,
+
+purchase transactions must have both card and merchant,
+
+non-purchase transactions must have neither,
+
+every transaction must resolve to a customer
+
+---
+
+## Repo structure
+
+```
+BankingDataPipeline/
+├── generator/           # gen_seed.py, gen_daily_batch.py — simulated core banking source
+├── bronze/               # staging_ddl.sql, bronze_ddl.sql, proc_load_bronze.sql
+├── dbt/
+│   ├── models/
+│   │   ├── staging/       # source.yml — Bronze source declarations
+│   │   ├── silver/        # 13 models + int_customers_current / addresses_current
+│   │   └── gold/          # 4 dims + 1 fact
+│   ├── snapshots/         # customers_snapshot, addresses_snapshot
+│   ├── tests/              # singular SQL tests
+│   └── macros/
+├── airflow/               # DAG definition
+└── docs/
+```
